@@ -13,19 +13,23 @@ import json
 import sys
 import requests
 import urllib.parse
+import configparser
 from xml.dom.minidom import Document, parse
 import XMLRequestClient
-# from dotenv import load_dotenv
 
-# import urllib.request
-# import time
-# load_dotenv()
-# ITBridge_url = os.environ['URL']
+config=configparser.ConfigParser(interpolation=None)
+config.read('credentials.ini')
+ini=config['default']
 
-senderId = "DSTaxMPP-DEV"
-senderPassword = str('x%uTf@rcT&aG^9')
 
-# sessionId = "mySessionId"
+senderId = ini.get('sender_id') 
+senderPassword = ini.get('sender_password')
+ITBridgeURL = ini.get('ITBridgeURL')
+ITBridgeAPIKey = ini.get('ITBridgeAPIKey')
+
+
+
+
 
 class sageServer(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -42,7 +46,10 @@ class sageServer(BaseHTTPRequestHandler):
             postData = self.rfile.read(int(self.headers.get('content-length'))).decode()
             args=urllib.parse.parse_qs(postData)
             
+            # get tax amount by pulling order data from intacct, then passing to ITBridge, and recieving the value back 
             taxAmount = getTax(args)
+
+
             print("xXx")
             print("tax amount = " + taxAmount)
             print("xXx")
@@ -105,6 +112,7 @@ def getTax(args):
         content.appendChild(function).setAttributeNode(newdoc.createAttribute('controlid'))
         function.attributes["controlid"].value = "testFunctionId"
 
+        
         queryFields = [
         'RECORDNO',
         'DOCNO',
@@ -145,7 +153,7 @@ def getTax(args):
             fields = newdoc.createElement('fields')
             readByQuery.appendChild(fields).appendChild(newdoc.createTextNode(queryFields))
             query = newdoc.createElement('query')
-            readByQuery.appendChild(query).appendChild(newdoc.createTextNode(DOCID=docID))
+            readByQuery.appendChild(query).appendChild(newdoc.createTextNode(QUERY))
 
         print(request.toprettyxml())
 
@@ -215,11 +223,12 @@ def updateTaxAmount(taxAmount, args):
 
 #############################################################
 #function updateTaxAmount($taxAmount, $args, $config)
+PORT = 8000
+server_address= ('localhost',PORT)
+webServer=HTTPServer(server_address,sageServer)
 
 def main():
-    PORT = 8000
-    server_address= ('localhost',PORT)
-    webServer=HTTPServer(server_address,sageServer)
+    
     print('Server is running on port %s' %PORT)
     webServer.serve_forever()
 
@@ -227,6 +236,6 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        pass
-
-    webServer.server_close()
+        print('\nClosing Server ')
+        webServer.server_close()
+        print('Server Closed')
