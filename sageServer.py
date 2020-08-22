@@ -14,7 +14,9 @@ import sys
 import requests
 import urllib.parse
 import configparser
+from xml.dom import minidom
 from xml.dom.minidom import Document, parse
+import xml.etree.ElementTree as ET
 import XMLRequestClient
 
 config=configparser.ConfigParser(interpolation=None)
@@ -27,8 +29,48 @@ senderPassword = ini.get('sender_password')
 ITBridgeURL = ini.get('ITBridgeURL')
 ITBridgeAPIKey = ini.get('ITBridgeAPIKey')
 
+# testing
+    # queryFields = [
+    #         'RECORDNO',
+    #         'DOCNO',
+    #         'DOCID',  # order number?
+    #         'CUSTOMER.NAME',
+    #         'CUSTOMER.CUSTOMERID',
+    #         'BILLTO.MAILADDRESS.CITY',
+    #         'BILLTO.MAILADDRESS.STATE',
+    #         'BILLTO.MAILADDRESS.ZIP',
+    #         'BILLTO.MAILADDRESS.COUNTRY',
+    #         'BILLTO.MAILADDRESS.COUNTRYCODE',
+    #         'SHIPTO.MAILADDRESS.CITY',
+    #         'SHIPTO.MAILADDRESS.STATE',
+    #         'SHIPTO.MAILADDRESS.ZIP',
+    #         'SHIPTO.MAILADDRESS.COUNTRY',
+    #         'SHIPTO.MAILADDRESS.COUNTRYCODE',
+    #         'SUBTOTAL',
+    #         'TOTAL']
 
+    # test='''<?xml version="1.0" ?><response><control><status>success</status><senderid>DSTaxMPP-DEV</senderid><controlid>testRequestId</controlid><uniqueid>false</uniqueid><dtdversion>3.0</dtdversion></control><operation><authentication><status>success</status><userid>Guest</userid><companyid>DSTaxMPP-DEV</companyid><locationid/><sessiontimestamp>2020-08-22T01:50:00+00:00</sessiontimestamp><sessiontimeout>2020-08-22T13:50:00+00:00</sessiontimeout></authentication><result><status>success</status><function>readByQuery</function><controlid>testFunctionId</controlid><data listtype="sodocument" count="1" totalcount="1" numremaining="0" resultId=""><sodocument><RECORDNO>645</RECORDNO><DOCNO>SO-0254</DOCNO><DOCID>Sales Order-SO-0254</DOCID><CUSTOMER.NAME>Mercado Sidewalk Cafe</CUSTOMER.NAME><CUSTOMER.CUSTOMERID>CUST-00106</CUSTOMER.CUSTOMERID><BILLTO.MAILADDRESS.CITY>Santa Clara</BILLTO.MAILADDRESS.CITY><BILLTO.MAILADDRESS.STATE>CA</BILLTO.MAILADDRESS.STATE><BILLTO.MAILADDRESS.ZIP>95054</BILLTO.MAILADDRESS.ZIP><BILLTO.MAILADDRESS.COUNTRY/><BILLTO.MAILADDRESS.COUNTRYCODE/><SHIPTO.MAILADDRESS.CITY>Santa Clara</SHIPTO.MAILADDRESS.CITY><SHIPTO.MAILADDRESS.STATE>CA</SHIPTO.MAILADDRESS.STATE><SHIPTO.MAILADDRESS.ZIP>95054</SHIPTO.MAILADDRESS.ZIP><SHIPTO.MAILADDRESS.COUNTRY/><SHIPTO.MAILADDRESS.COUNTRYCODE/><SUBTOTAL>349</SUBTOTAL><TOTAL>349</TOTAL></sodocument></data></result></operation></response>'''
+    # mytree= ET.fromstring(test)
 
+    # operation=mytree[1]
+    # results=operation[1]
+    # data=results[3]
+    # potato=data[0]
+
+    # print(data[0].tag)
+
+    # for x in data[0]:
+    #     print(x.tag, x.text)
+
+    # order={}
+    # x=0
+    # for field in queryFields:
+    #     order[field]=potato[x].text
+    #     x+=1
+
+        
+
+    # print(order['RECORDNO'])
 
 
 class sageServer(BaseHTTPRequestHandler):
@@ -50,9 +92,8 @@ class sageServer(BaseHTTPRequestHandler):
             taxAmount = getTax(args)
 
 
-            print("xXx")
             print("tax amount = " + taxAmount)
-            print("xXx")
+            
         except Exception as e:
             response = {'error': e.args[0]}
             print(response)
@@ -62,18 +103,19 @@ class sageServer(BaseHTTPRequestHandler):
             self.send_response(200,"OK")
 
 def getTax(args):
-    # get strings out of args
+   
+    try: # get strings out of args
+        DOCtype = args.get('docType')#['docType']
+        docType = DOCtype[0]
+        
+        sessionId = args['sessionId']
+        SID = sessionId[0]
 
-    DOCtype = args.get('docType')#['docType']
-    docType = DOCtype[0]
-    
-    sessionId = args['sessionId']
-    SID = sessionId[0]
-
-    DOCID = args['docId']
-    docID = DOCID[0]
-    QUERY=("DOCID= '" + docID + "'")
-
+        DOCID = args['docId']
+        docID = DOCID[0]
+        QUERY=("DOCID= '" + docID + "'")
+    except Exception as e:
+        pass
 
     try: # Write the XML request with the minidom  module
         newdoc = Document()
@@ -155,22 +197,58 @@ def getTax(args):
             query = newdoc.createElement('query')
             readByQuery.appendChild(query).appendChild(newdoc.createTextNode(QUERY))
 
-        print(request.toprettyxml())
+        # print(request.toprettyxml())
 
         # Post the request
         response = XMLRequestClient.XMLRequestClient.post(request)
 
     except Exception as inst:
-        print("Uh oh, something is wrong in getTax()")
+        print("\nUh oh, something is wrong in getTax()")
         print(type(inst))
         print(inst.args)
-        print("end of getTax Error")
+        print("end of getTax Error\n")
 
     # Print the XML response to the console
-    print(response.toprettyxml())
-    xml_data_array = response._get_documentElement('result')
-    # prettyxml=xml_data_array
-    print(xml_data_array)
+    # print(response.toprettyxml())
+    orderxml=response.toxml()
+    # print(potato)
+
+    mytree= ET.fromstring(orderxml)
+
+    operation=mytree[1]
+    results=operation[1]
+    data=results[3]
+    potato=data[0]
+
+    print(data[0].tag)
+
+    for x in data[0]:
+        print(x.tag, x.text)
+
+    order={}
+    x=0
+    for field in queryFields:
+        order[field]=potato[x].text
+        x+=1
+
+
+
+    # data=minidom.parse(response)
+
+    # result=response.getElementsByTagName('sodocument')
+
+    # for x in result:
+    #     print(x.firstChild)
+
+    # mytree= ET.fromstring(potato)
+    # myroot= mytree[0]
+    # operation=myroot[1]
+    # results=operation[1]
+    # data=results[3]
+
+    # for x in data[0]:
+    #     print(x.tag, x.text)
+    
     
 
     
@@ -223,6 +301,11 @@ def updateTaxAmount(taxAmount, args):
 
 #############################################################
 #function updateTaxAmount($taxAmount, $args, $config)
+
+
+
+
+# server variables
 PORT = 8000
 server_address= ('localhost',PORT)
 webServer=HTTPServer(server_address,sageServer)
@@ -236,6 +319,5 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print('\nClosing Server ')
         webServer.server_close()
-        print('Server Closed')
+        print('\nServer Closed')
