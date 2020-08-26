@@ -57,10 +57,10 @@ ITBridgeAPIKey = ini.get('ITBridgeAPIKey')
     # data=results[3]
     # potato=data[0]
 
-    # print(data[0].tag)
+    # # print(data[0].tag)
 
-    # for x in data[0]:
-    #     print(x.tag, x.text)
+    # # for x in data[0]:
+    # #     print(x.tag, x.text)
 
     # order={}
     # x=0
@@ -68,9 +68,32 @@ ITBridgeAPIKey = ini.get('ITBridgeAPIKey')
     #     order[field]=potato[x].text
     #     x+=1
 
+    # print(order)
+
         
 
     # print(order['RECORDNO'])
+
+# testing 2
+    # fields = [
+    #         'RECORDNO',
+    #         'ITEMID',
+    #         'ITEMNAME',
+    #         'QUANTITY',
+    #         'PRICE',
+    #         'TOTAL',
+    #     ]
+
+    # queryFields = ""
+
+    # for field in fields:
+    #     while field.
+    #     <fields.count():
+    #         queryFields += field +","
+    #     queryFields += field
+        
+
+    # print(queryFields)
 
 
 class sageServer(BaseHTTPRequestHandler):
@@ -95,7 +118,7 @@ class sageServer(BaseHTTPRequestHandler):
             print("tax amount = " + taxAmount)
             
         except Exception as e:
-            response = {'error': e.args[0]}
+            response = {'error in main': e.args}
             print(response)
         finally:
             # print(url)
@@ -105,7 +128,7 @@ class sageServer(BaseHTTPRequestHandler):
 def getTax(args):
    
     try: # get strings out of args
-        DOCtype = args.get('docType')#['docType']
+        DOCtype = args.get('docType')
         docType = DOCtype[0]
         
         sessionId = args['sessionId']
@@ -113,7 +136,8 @@ def getTax(args):
 
         DOCID = args['docId']
         docID = DOCID[0]
-        QUERY=("DOCID= '" + docID + "'")
+        OrderQUERY=("DOCID= '" + docID + "'")
+        ItemQUERY=("DOCHDID= '" + docID + "'")
     except Exception as e:
         pass
 
@@ -174,7 +198,7 @@ def getTax(args):
         'SUBTOTAL',
         'TOTAL']
  
-        queryFields = "RECORDNO,DOCNO,DOCID,CUSTOMER.NAME,CUSTOMER.CUSTOMERID,BILLTO.MAILADDRESS.CITY,BILLTO.MAILADDRESS.STATE,BILLTO.MAILADDRESS.ZIP,BILLTO.MAILADDRESS.COUNTRY,BILLTO.MAILADDRESS.COUNTRYCODE,SHIPTO.MAILADDRESS.CITY,SHIPTO.MAILADDRESS.STATE,SHIPTO.MAILADDRESS.ZIP,SHIPTO.MAILADDRESS.COUNTRY,SHIPTO.MAILADDRESS.COUNTRYCODE,SUBTOTAL,TOTAL"
+        Fields = "RECORDNO,DOCNO,DOCID,CUSTOMER.NAME,CUSTOMER.CUSTOMERID,BILLTO.MAILADDRESS.CITY,BILLTO.MAILADDRESS.STATE,BILLTO.MAILADDRESS.ZIP,BILLTO.MAILADDRESS.COUNTRY,BILLTO.MAILADDRESS.COUNTRYCODE,SHIPTO.MAILADDRESS.CITY,SHIPTO.MAILADDRESS.STATE,SHIPTO.MAILADDRESS.ZIP,SHIPTO.MAILADDRESS.COUNTRY,SHIPTO.MAILADDRESS.COUNTRYCODE,SUBTOTAL,TOTAL"
         
     # Sales Order Query
         if (docType == "Sales Order"):
@@ -183,9 +207,9 @@ def getTax(args):
             object = newdoc.createElement('object')
             readByQuery.appendChild(object).appendChild(newdoc.createTextNode("SODOCUMENT"))
             fields = newdoc.createElement('fields')
-            readByQuery.appendChild(fields).appendChild(newdoc.createTextNode(queryFields))
+            readByQuery.appendChild(fields).appendChild(newdoc.createTextNode(Fields))
             query = newdoc.createElement('query')
-            readByQuery.appendChild(query).appendChild(newdoc.createTextNode(QUERY)) # All records
+            readByQuery.appendChild(query).appendChild(newdoc.createTextNode(OrderQUERY)) # All records
     # Purchase Order Query 
         if (docType == 'Purchase Order'):
             readByQuery = newdoc.createElement('readByQuery')
@@ -193,9 +217,9 @@ def getTax(args):
             object = newdoc.createElement('object')
             readByQuery.appendChild(object).appendChild(newdoc.createTextNode("PODOCUMENT"))
             fields = newdoc.createElement('fields')
-            readByQuery.appendChild(fields).appendChild(newdoc.createTextNode(queryFields))
+            readByQuery.appendChild(fields).appendChild(newdoc.createTextNode(Fields))
             query = newdoc.createElement('query')
-            readByQuery.appendChild(query).appendChild(newdoc.createTextNode(QUERY))
+            readByQuery.appendChild(query).appendChild(newdoc.createTextNode(OrderQUERY))
 
         # print(request.toprettyxml())
 
@@ -208,50 +232,117 @@ def getTax(args):
         print(inst.args)
         print("end of getTax Error\n")
 
-    # Print the XML response to the console
+# convert responce data into readable format
     # print(response.toprettyxml())
     orderxml=response.toxml()
-    # print(potato)
-
     mytree= ET.fromstring(orderxml)
-
     operation=mytree[1]
     results=operation[1]
     data=results[3]
     potato=data[0]
-
-    print(data[0].tag)
-
-    for x in data[0]:
-        print(x.tag, x.text)
-
-    order={}
-    x=0
-    for field in queryFields:
-        order[field]=potato[x].text
-        x+=1
-
-
-
-    # data=minidom.parse(response)
-
-    # result=response.getElementsByTagName('sodocument')
-
-    # for x in result:
-    #     print(x.firstChild)
-
-    # mytree= ET.fromstring(potato)
-    # myroot= mytree[0]
-    # operation=myroot[1]
-    # results=operation[1]
-    # data=results[3]
-
+    print(potato)
+#  Put order fields into an array
     # for x in data[0]:
     #     print(x.tag, x.text)
+    try:
+        order={}
+        x=0
+        for field in queryFields:
+            order[field]=potato[x].text
+            x+=1
+
+    except Exception as inst:
+        print("\nUh oh, something is wrong in order details()")
+        print(type(inst))
+        print(inst.args)
+        print("end of getTax Error\n")
     
+    print(order)
+
+
+# Query for order items
+
+    # queryFields = [
+    #     'RECORDNO',
+    #     'ITEMID',
+    #     'ITEMNAME',
+    #     'QUANTITY',
+    #     'PRICE',
+    #     'TOTAL',
+    # ]
+
+    # Fields = "RECORDNO,ITEMID,ITEMNAME,QUANTITY,PRICE,TOTAL"
+
+    # try: # Write the XML request with the minidom  module
+    #     newdoc = Document()
+    #     ############## CONTROL ELEMENT #######################
+    #     request = newdoc.createElement('request')
+    #     newdoc.appendChild(request)
+    #     control = newdoc.createElement('control')
+    #     request.appendChild(control)
+    #     senderid = newdoc.createElement('senderid')
+    #     control.appendChild(senderid).appendChild(newdoc.createTextNode(senderId))
+    #     senderpassword = newdoc.createElement('password')
+    #     control.appendChild(senderpassword).appendChild(newdoc.createTextNode(senderPassword))
+    #     controlid = newdoc.createElement('controlid')
+    #     control.appendChild(controlid).appendChild(newdoc.createTextNode("testRequestId"))
+    #     uniqueid = newdoc.createElement('uniqueid')
+    #     control.appendChild(uniqueid).appendChild(newdoc.createTextNode("false"))
+    #     dtdversion = newdoc.createElement('dtdversion')
+    #     control.appendChild(dtdversion).appendChild(newdoc.createTextNode("3.0"))
+    #     includewhitespace = newdoc.createElement('includewhitespace')
+    #     control.appendChild(includewhitespace).appendChild(newdoc.createTextNode("false"))
+
+    #     operation = newdoc.createElement('operation')
+    #     request.appendChild(operation)
+
+    #     ############### AUTHENTICATION ELEMENT ####################
+    #     authentication = newdoc.createElement('authentication')
+    #     operation.appendChild(authentication)
+
+    #     sessionid = newdoc.createElement('sessionid')
+    #     authentication.appendChild(sessionid).appendChild(newdoc.createTextNode(SID))
+
+    #     ################ CONTENT ELEMENT ##########################
+    #     content = newdoc.createElement('content')
+    #     operation.appendChild(content)
+    #     function = newdoc.createElement('function')
+    #     content.appendChild(function).setAttributeNode(newdoc.createAttribute('controlid'))
+    #     function.attributes["controlid"].value = "testFunctionId"
+    # # Sales Order Query
+    #     if (docType == "Sales Order"):
+    #         readByQuery = newdoc.createElement('readByQuery')
+    #         function.appendChild(readByQuery)
+    #         object = newdoc.createElement('object')
+    #         readByQuery.appendChild(object).appendChild(newdoc.createTextNode("SODOCUMENTENTRY"))
+    #         fields = newdoc.createElement('fields')
+    #         readByQuery.appendChild(fields).appendChild(newdoc.createTextNode(queryFields))
+    #         query = newdoc.createElement('query')
+    #         readByQuery.appendChild(query).appendChild(newdoc.createTextNode(ItemQUERY)) # All records
+    # # Purchase Order Query 
+    #     if (docType == 'Purchase Order'):
+    #         readByQuery = newdoc.createElement('readByQuery')
+    #         function.appendChild(readByQuery)
+    #         object = newdoc.createElement('object')
+    #         readByQuery.appendChild(object).appendChild(newdoc.createTextNode("PODOCUMENTENTRY"))
+    #         fields = newdoc.createElement('fields')
+    #         readByQuery.appendChild(fields).appendChild(newdoc.createTextNode(queryFields))
+    #         query = newdoc.createElement('query')
+    #         readByQuery.appendChild(query).appendChild(newdoc.createTextNode(ItemQUERY))
+    
+    # #send Request
+    #     response = XMLRequestClient.XMLRequestClient.post(request)
+
+    # except Exception as inst:
+    #     print("\nUh oh, something is wrong in orderitems()")
+    #     print(type(inst))
+    #     print(inst.args)
+    #     print("end of getTax Error\n")
+
+    # print(response.toprettyxml)
     
 
-    
+
     placehorder= "No Tax to return yet"
     return(placehorder)
 
